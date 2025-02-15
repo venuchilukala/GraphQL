@@ -2,10 +2,17 @@ const express = require('express')
 const { ApolloServer } = require('@apollo/server')
 const { expressMiddleware } = require('@apollo/server/express4')
 const { default: axios } = require('axios')
-
-
 const bodyParser = require('body-parser')
 const cors = require('cors')
+const fs = require('fs')
+
+// Import JSON files directly (No need for fs.readFileSync)
+// const todos = require('./todos.json')
+// const users = require('./users.json')
+
+// Read JSON files
+const todos = JSON.parse(fs.readFileSync('./todos.json', 'utf-8'))
+const users = JSON.parse(fs.readFileSync('./users.json', 'utf-8'))
 
 
 async function startServer() {
@@ -35,14 +42,14 @@ async function startServer() {
             }
         `,
         resolvers: {
-            Todo : {
-                user: async (todo) => (await axios.get(`https://jsonplaceholder.typicode.com/users/${todo.userId}`)).data
+            Todo: {
+                user: async (todo) => users.find(user => user.id === todo.userId),
             },
 
             Query: {
-                getTodos: async () => (await axios.get('https://jsonplaceholder.typicode.com/todos')).data,
-                getUsers: async () => (await axios.get('https://jsonplaceholder.typicode.com/users')).data,
-                getUser: async (parent, {id}) => (await axios.get(`https://jsonplaceholder.typicode.com/users/${id}`)).data
+                getTodos: async () => todos,
+                getUsers: async () => users,
+                getUser: async (_, { id }) => users.find(user => user.id === parseInt(id)),
             }
         }
     })
@@ -51,9 +58,9 @@ async function startServer() {
     app.use(cors())
 
     await server.start()
-
     app.use("/graphql", expressMiddleware(server))
 
     app.listen(8000, () => console.log(`Server started at http://localhost:8000`))
 }
 startServer()
+
